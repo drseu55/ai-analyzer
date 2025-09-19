@@ -4,7 +4,13 @@ import parserTs from "@typescript-eslint/parser";
 
 const config = [
   {
-    ignores: ["dist/**", "node_modules/**", "sample-src/**", "coverage/**"],
+    ignores: [
+      "dist/**",
+      "node_modules/**",
+      "sample-src/**",
+      "coverage/**",
+      "docs/**",
+    ],
   },
   {
     files: ["src/**/*.ts", "src/**/*.tsx"],

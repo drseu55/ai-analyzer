@@ -1,0 +1,5 @@
+project:
+  name: ai-analyzer
+  tz: Europe/Sofia
+  adrFolder: ./docs/adr
+  packages: []
