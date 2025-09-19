@@ -7,7 +7,7 @@
     "build": "tsc --project tsconfig.json",
     "start": "node dist/main.js",
     "dev": "tsc -w",
-    "test": "jest --passWithNoTests",
+    "test": "jest",
     "coverage": "jest --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
