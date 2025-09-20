@@ -48,7 +48,7 @@ describe("Static Import Parser", () => {
       expect(result[filePath]).toEqual([join(TEST_TEMP_DIR, "utils.ts")]);
     });
 
-    it.only("should parse named imports", async () => {
+    it("should parse named imports", async () => {
       const fileContent = `
         import { add, subtract } from "./math";
         import { Component, useState } from "react";
