@@ -1,4 +1,6 @@
-import { Graph, alg } from "@dagrejs/graphlib";
+import pkg from "@dagrejs/graphlib";
+import type { Graph } from "@dagrejs/graphlib";
+const { Graph: GraphConstructor, alg } = pkg;
 
 /**
  * Represents an adjacency mapping for dependency graphs.
@@ -19,7 +21,7 @@ export type Cycle = string[];
  * @returns Directed graph with nodes and edges representing dependencies
  */
 export function buildGraph(adjacency: AdjacencyMapping): Graph {
-  const graph = new Graph({ directed: true });
+  const graph = new GraphConstructor({ directed: true });
 
   // Collect all unique nodes (files)
   const allNodes = new Set<string>();
