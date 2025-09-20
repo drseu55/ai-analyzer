@@ -173,6 +173,162 @@ function calculateMaxDepth(graph: Graph, topoOrder: string[]): number {
 }
 
 /**
+ * Computes fan-in and fan-out metrics for all nodes in the dependency graph.
+ * Fan-in: Number of nodes that depend on this node (incoming edges).
+ * Fan-out: Number of nodes that this node depends on (outgoing edges).
+ *
+ * @param graph - The dependency graph to analyze
+ * @returns Object containing fan-in and fan-out counts for each node
+ */
+export function computeFanInOut(graph: Graph): {
+  fanIn: Record<string, number>;
+  fanOut: Record<string, number>;
+} {
+  const fanIn: Record<string, number> = {};
+  const fanOut: Record<string, number> = {};
+
+  // Get all nodes and initialize counters
+  const nodes = graph.nodes();
+  for (const node of nodes) {
+    fanIn[node] = 0;
+    fanOut[node] = 0;
+  }
+
+  // Calculate fan-in and fan-out for each node
+  for (const node of nodes) {
+    // Fan-out: Count outgoing edges (successors)
+    const successors = graph.successors(node) || [];
+    fanOut[node] = successors.length;
+
+    // Fan-in: Count incoming edges (predecessors)
+    const predecessors = graph.predecessors(node) || [];
+    fanIn[node] = predecessors.length;
+  }
+
+  return {
+    fanIn,
+    fanOut,
+  };
+}
+
+/**
+ * Identifies nodes with high coupling based on fan-in/fan-out metrics.
+ *
+ * @param graph - The dependency graph to analyze
+ * @param options - Configuration for coupling thresholds
+ * @returns Object containing nodes with high fan-in and fan-out
+ */
+export function findHighCouplingNodes(
+  graph: Graph,
+  options: {
+    fanInThreshold?: number;
+    fanOutThreshold?: number;
+  } = {},
+): {
+  highFanIn: Array<{ node: string; count: number }>;
+  highFanOut: Array<{ node: string; count: number }>;
+} {
+  const { fanInThreshold = 5, fanOutThreshold = 10 } = options;
+  const { fanIn, fanOut } = computeFanInOut(graph);
+
+  const highFanIn: Array<{ node: string; count: number }> = [];
+  const highFanOut: Array<{ node: string; count: number }> = [];
+
+  // Find nodes with high fan-in (many dependents)
+  for (const [node, count] of Object.entries(fanIn)) {
+    if (count >= fanInThreshold) {
+      highFanIn.push({ node, count });
+    }
+  }
+
+  // Find nodes with high fan-out (many dependencies)
+  for (const [node, count] of Object.entries(fanOut)) {
+    if (count >= fanOutThreshold) {
+      highFanOut.push({ node, count });
+    }
+  }
+
+  // Sort by count (descending) for deterministic output
+  highFanIn.sort((a, b) => {
+    if (a.count !== b.count) {
+      return b.count - a.count; // Higher counts first
+    }
+    return a.node.localeCompare(b.node); // Alphabetical for ties
+  });
+
+  highFanOut.sort((a, b) => {
+    if (a.count !== b.count) {
+      return b.count - a.count; // Higher counts first
+    }
+    return a.node.localeCompare(b.node); // Alphabetical for ties
+  });
+
+  return {
+    highFanIn,
+    highFanOut,
+  };
+}
+
+/**
+ * Gets comprehensive metrics about the dependency graph including coupling analysis.
+ *
+ * @param graph - The dependency graph to analyze
+ * @returns Extended graph statistics including coupling metrics
+ */
+export function getExtendedGraphStats(graph: Graph): {
+  nodeCount: number;
+  edgeCount: number;
+  hasCycles: boolean;
+  maxDepth: number;
+  fanInOut: { fanIn: Record<string, number>; fanOut: Record<string, number> };
+  couplingMetrics: {
+    averageFanIn: number;
+    averageFanOut: number;
+    maxFanIn: number;
+    maxFanOut: number;
+    highlyConnectedNodes: number;
+  };
+} {
+  const basicStats = getGraphStats(graph);
+  const fanInOut = computeFanInOut(graph);
+
+  // Calculate coupling metrics
+  const fanInValues = Object.values(fanInOut.fanIn);
+  const fanOutValues = Object.values(fanInOut.fanOut);
+
+  const averageFanIn =
+    fanInValues.length > 0
+      ? fanInValues.reduce((sum, val) => sum + val, 0) / fanInValues.length
+      : 0;
+
+  const averageFanOut =
+    fanOutValues.length > 0
+      ? fanOutValues.reduce((sum, val) => sum + val, 0) / fanOutValues.length
+      : 0;
+
+  const maxFanIn = fanInValues.length > 0 ? Math.max(...fanInValues) : 0;
+  const maxFanOut = fanOutValues.length > 0 ? Math.max(...fanOutValues) : 0;
+
+  // Count nodes with high connectivity (above average in either direction)
+  const highlyConnectedNodes = fanInValues.filter(
+    (fanIn, index) =>
+      fanIn > averageFanIn || fanOutValues[index] > averageFanOut,
+  ).length;
+
+  return {
+    ...basicStats,
+    fanInOut,
+    couplingMetrics: {
+      averageFanIn,
+      averageFanOut,
+      maxFanIn,
+      maxFanOut,
+      highlyConnectedNodes,
+    },
+  };
+}
+
+/**
  * Validates that an adjacency mapping is well-formed.
  *
  * @param adjacency - The adjacency mapping to validate
