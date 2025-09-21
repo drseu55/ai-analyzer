@@ -1,7 +1,5 @@
-#!/usr/bin/env node
-
+import "dotenv/config";
 import { Command } from "commander";
-import { config as loadDotEnv } from "dotenv";
 import { resolve } from "path";
 import { findTypeScriptFiles } from "./utils/fs.js";
 import { loadTsConfig, createPathResolver } from "./utils/tsconfig.js";
@@ -21,9 +19,6 @@ import { logger } from "./utils/logger.js";
  * 5. Build dependency graph
  * 6. Output results as JSON
  */
-
-// Load environment variables from .env file
-loadDotEnv();
 
 // Create CLI program
 const program = new Command();
