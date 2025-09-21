@@ -1,14 +1,14 @@
 import "dotenv/config";
 import { Command } from "commander";
 import { resolve } from "path";
-import { findTypeScriptFiles } from "./utils/fs.js";
-import { loadTsConfig, createPathResolver } from "./utils/tsconfig.js";
-import { parseImports } from "./parser.js";
-import { buildGraph, serializeAdjacency } from "./graph-builder.js";
-import { printJson, writeJsonToFile } from "./reporter.js";
-import { logger } from "./utils/logger.js";
-import { analyzeProgrammatically, analyzeWithLLM } from "./analyzer.js";
-import { GeminiLLMClient } from "./llm-client.js";
+import { findTypeScriptFiles } from "./utils/fs";
+import { loadTsConfig, createPathResolver } from "./utils/tsconfig";
+import { parseImports } from "./parser";
+import { buildGraph, serializeAdjacency } from "./graph-builder";
+import { printJson, writeJsonToFile } from "./reporter";
+import { logger } from "./utils/logger";
+import { analyzeProgrammatically, analyzeWithLLM } from "./analyzer";
+import { GeminiLLMClient } from "./llm-client";
 
 /**
  * Main CLI entry point for the TypeScript Dependency Analysis tool.

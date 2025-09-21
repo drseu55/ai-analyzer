@@ -10,7 +10,7 @@ import {
   StringLiteral,
 } from "ts-morph";
 import { extname } from "path";
-import { logger } from "./utils/logger.js";
+import { logger } from "./utils/logger";
 
 /**
  * Function type for resolving import specifiers to absolute file paths

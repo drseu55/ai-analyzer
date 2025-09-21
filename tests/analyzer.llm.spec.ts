@@ -1,7 +1,7 @@
-import { analyzeWithLLM } from "../src/analyzer.js";
-import { buildGraph } from "../src/graph-builder.js";
-import type { InsightPayload } from "../src/types.js";
-import { MockLLMClient } from "./mocks/llm-client.mock.js";
+import { analyzeWithLLM } from "../src/analyzer";
+import { buildGraph } from "../src/graph-builder";
+import type { InsightPayload } from "../src/types";
+import { MockLLMClient } from "./mocks/llm-client.mock";
 
 describe("analyzeWithLLM", () => {
   let mockLLMClient: MockLLMClient;

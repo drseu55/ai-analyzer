@@ -2,7 +2,7 @@ import {
   GeminiLLMClient,
   LLMError,
   type GeminiLLMClientOptions,
-} from "../src/llm-client.js";
+} from "../src/llm-client";
 
 // Mock the Google Generative AI module
 const mockGenerateContent = jest.fn();

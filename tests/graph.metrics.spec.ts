@@ -4,7 +4,7 @@ import {
   findHighCouplingNodes,
   AdjacencyMapping,
   findCycles,
-} from "../src/graph-builder.js";
+} from "../src/graph-builder";
 
 describe("Graph Metrics", () => {
   describe("computeFanInOut", () => {

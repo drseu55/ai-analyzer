@@ -6,7 +6,7 @@ import {
   toRelativePaths,
   validateDirectory,
   FindTypeScriptFilesOptions,
-} from "../src/utils/fs.js";
+} from "../src/utils/fs";
 
 describe("Filesystem Utilities", () => {
   const SAMPLE_SRC_PATH = resolve("sample-src");

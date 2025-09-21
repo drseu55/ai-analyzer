@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import { InsightPayload, InsightPayloadSchema } from "./types.js";
-import { logger } from "./utils/logger.js";
+import { InsightPayload, InsightPayloadSchema } from "./types";
+import { logger } from "./utils/logger";
 
 /**
  * Interface for LLM clients that can analyze dependency graphs and provide insights.

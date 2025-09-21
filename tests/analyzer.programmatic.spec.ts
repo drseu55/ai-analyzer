@@ -4,7 +4,7 @@ import {
   analyzeProgrammatically,
   formatFilePath,
   type AnalyzerOptions,
-} from "../src/analyzer.js";
+} from "../src/analyzer";
 
 const { Graph: GraphConstructor } = pkg;
 

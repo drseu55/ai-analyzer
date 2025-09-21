@@ -1,7 +1,7 @@
 import pkg from "@dagrejs/graphlib";
 import type { Graph } from "@dagrejs/graphlib";
 const { Graph: GraphConstructor, alg } = pkg;
-import { logger } from "./utils/logger.js";
+import { logger } from "./utils/logger";
 
 /**
  * Represents an adjacency mapping for dependency graphs.

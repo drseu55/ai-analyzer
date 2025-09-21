@@ -37,7 +37,7 @@ const testLogger = pino(
 );
 
 // Mock the logger module
-jest.mock("../src/utils/logger.js", () => ({
+jest.mock("../src/utils/logger", () => ({
   logger: testLogger,
 }));
 
@@ -115,7 +115,7 @@ describe("Structured Logging", () => {
           throw new Error(`process.exit(${code})`);
         });
 
-      const { runAnalysis } = await import("../src/main.js");
+      const { runAnalysis } = await import("../src/main");
 
       // This will fail due to invalid directory, but should generate logs
       try {
@@ -139,7 +139,7 @@ describe("Structured Logging", () => {
     });
 
     it("should log parser operations", async () => {
-      const { parseImports } = await import("../src/parser.js");
+      const { parseImports } = await import("../src/parser");
 
       const mockResolver = jest.fn().mockReturnValue(null);
 
@@ -155,7 +155,7 @@ describe("Structured Logging", () => {
     });
 
     it("should log graph builder operations", async () => {
-      const { buildGraph } = await import("../src/graph-builder.js");
+      const { buildGraph } = await import("../src/graph-builder");
 
       const testAdjacency = {
         "fileA.ts": ["fileB.ts"],
@@ -173,8 +173,8 @@ describe("Structured Logging", () => {
     });
 
     it("should log analyzer operations", async () => {
-      const { analyzeProgrammatically } = await import("../src/analyzer.js");
-      const { buildGraph } = await import("../src/graph-builder.js");
+      const { analyzeProgrammatically } = await import("../src/analyzer");
+      const { buildGraph } = await import("../src/graph-builder");
 
       const testAdjacency = {
         "fileA.ts": ["fileB.ts"],
@@ -208,7 +208,7 @@ describe("Structured Logging", () => {
       // Clear logs before this specific test
       mockLogEntries.length = 0;
 
-      const { GeminiLLMClient } = await import("../src/llm-client.js");
+      const { GeminiLLMClient } = await import("../src/llm-client");
 
       // Should log initialization (will fail due to missing API key, but should log the attempt)
       try {

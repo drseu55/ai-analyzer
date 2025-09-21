@@ -3,12 +3,12 @@ import {
   findCycles,
   computeFanInOut,
   serializeAdjacency,
-} from "./graph-builder.js";
-import type { InsightPayload, AnalysisOutput } from "./types.js";
-import { AnalysisOutputSchema } from "./types.js";
-import type { ILLMClient } from "./llm-client.js";
+} from "./graph-builder";
+import type { InsightPayload, AnalysisOutput } from "./types";
+import { AnalysisOutputSchema } from "./types";
+import type { ILLMClient } from "./llm-client";
 import { basename } from "path";
-import { logger } from "./utils/logger.js";
+import { logger } from "./utils/logger";
 
 /**
  * Options for configuring the programmatic analyzer

@@ -3,7 +3,7 @@ import { join, resolve, extname } from "path";
 import {
   DEFAULT_IGNORES,
   isTypeScriptExtension,
-} from "../constants/filesystem.js";
+} from "../constants/filesystem";
 
 /**
  * Options for TypeScript file discovery

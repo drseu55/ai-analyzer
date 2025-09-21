@@ -7,7 +7,7 @@ import {
   isExternalModule,
   TsConfigPaths,
   PathResolver,
-} from "../src/utils/tsconfig.js";
+} from "../src/utils/tsconfig";
 
 describe("TypeScript Configuration Utilities", () => {
   const TEST_TEMP_DIR = resolve("temp-tsconfig-test");

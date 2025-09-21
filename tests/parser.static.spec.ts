@@ -1,7 +1,7 @@
 import { writeFile, mkdir, rm } from "fs/promises";
 import { join, resolve } from "path";
-import { parseImports, ImportResolver } from "../src/parser.js";
-import { createPathResolver, loadTsConfig } from "../src/utils/tsconfig.js";
+import { parseImports, ImportResolver } from "../src/parser";
+import { createPathResolver, loadTsConfig } from "../src/utils/tsconfig";
 
 describe("Static Import Parser", () => {
   const TEST_TEMP_DIR = resolve("temp-parser-test");

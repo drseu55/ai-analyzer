@@ -1,7 +1,7 @@
 import { readFile, rm, stat } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { printJson, writeJsonToFile } from "../src/reporter.js";
+import { printJson, writeJsonToFile } from "../src/reporter";
 
 describe("Reporter", () => {
   // Mock console.log for stdout testing

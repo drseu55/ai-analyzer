@@ -3,7 +3,7 @@ import {
   serializeAdjacency,
   findCycles,
   AdjacencyMapping,
-} from "../src/graph-builder.js";
+} from "../src/graph-builder";
 
 describe("Graph Builder", () => {
   describe("buildGraph", () => {

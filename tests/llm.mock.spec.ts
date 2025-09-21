@@ -2,7 +2,7 @@ import {
   MockLLMClient,
   MockLLMClientFactory,
   type MockLLMClientOptions,
-} from "./mocks/llm-client.mock.js";
+} from "./mocks/llm-client.mock";
 
 describe("LLM Client Interface and Mock", () => {
   describe("ILLMClient Interface", () => {

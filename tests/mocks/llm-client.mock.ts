@@ -1,5 +1,5 @@
-import type { ILLMClient } from "../../src/llm-client.js";
-import type { InsightPayload } from "../../src/types.js";
+import type { ILLMClient } from "../../src/llm-client";
+import type { InsightPayload } from "../../src/types";
 
 /**
  * Configuration options for MockLLMClient behavior.

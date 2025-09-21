@@ -1,6 +1,6 @@
 import { writeFile, mkdir, rm } from "fs/promises";
 import { join, resolve } from "path";
-import { parseImports, ImportResolver } from "../src/parser.js";
+import { parseImports, ImportResolver } from "../src/parser";
 
 describe("Extended Import Parser", () => {
   const TEST_TEMP_DIR = resolve("temp-parser-extended-test");

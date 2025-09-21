@@ -1,14 +1,14 @@
 import { writeFile, mkdir, rm } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { runAnalysis } from "../src/main.js";
-import * as reporter from "../src/reporter.js";
-import * as fsUtils from "../src/utils/fs.js";
-import * as tsconfigUtils from "../src/utils/tsconfig.js";
-import * as parser from "../src/parser.js";
-import * as analyzer from "../src/analyzer.js";
-import * as llmClient from "../src/llm-client.js";
-import { GeminiLLMClient } from "../src/llm-client.js";
+import { runAnalysis } from "../src/main";
+import * as reporter from "../src/reporter";
+import * as fsUtils from "../src/utils/fs";
+import * as tsconfigUtils from "../src/utils/tsconfig";
+import * as parser from "../src/parser";
+import * as analyzer from "../src/analyzer";
+import * as llmClient from "../src/llm-client";
+import { GeminiLLMClient } from "../src/llm-client";
 
 describe("CLI Minimal Integration", () => {
   let tempDir: string;
@@ -21,7 +21,7 @@ describe("CLI Minimal Integration", () => {
     tempFiles = [];
 
     // Mock logger.error to avoid cluttering test output and capture calls
-    const { logger } = await import("../src/utils/logger.js");
+    const { logger } = await import("../src/utils/logger");
     loggerSpy = jest.spyOn(logger, "error").mockImplementation(() => {});
 
     // Mock process.exit to prevent actual exits during tests
@@ -37,7 +37,7 @@ describe("CLI Minimal Integration", () => {
     });
 
     jest.spyOn(analyzer, "analyzeWithLLM").mockImplementation(async (graph) => {
-      const { serializeAdjacency } = await import("../src/graph-builder.js");
+      const { serializeAdjacency } = await import("../src/graph-builder");
       return {
         graph: serializeAdjacency(graph),
         insights: {
