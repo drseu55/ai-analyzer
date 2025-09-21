@@ -37,7 +37,7 @@ describe("Extended Import Parser", () => {
       const filePath = join(TEST_TEMP_DIR, "test.ts");
       await writeFile(filePath, fileContent);
 
-      const mockResolver: ImportResolver = (fromFile, specifier) => {
+      const mockResolver: ImportResolver = (_fromFile, specifier) => {
         switch (specifier) {
           case "./utils":
             return join(TEST_TEMP_DIR, "utils.ts");
@@ -81,7 +81,7 @@ describe("Extended Import Parser", () => {
       const filePath = join(TEST_TEMP_DIR, "test.ts");
       await writeFile(filePath, fileContent);
 
-      const mockResolver: ImportResolver = (fromFile, specifier) => {
+      const mockResolver: ImportResolver = (_fromFile, specifier) => {
         if (specifier.startsWith("./module")) {
           return join(TEST_TEMP_DIR, specifier.substring(2) + ".ts");
         }
@@ -115,7 +115,7 @@ describe("Extended Import Parser", () => {
       const filePath = join(TEST_TEMP_DIR, "test.ts");
       await writeFile(filePath, fileContent);
 
-      const mockResolver: ImportResolver = (fromFile, specifier) => {
+      const mockResolver: ImportResolver = (_fromFile, specifier) => {
         if (specifier === "./static") {
           return join(TEST_TEMP_DIR, "static.ts");
         }
@@ -143,7 +143,7 @@ describe("Extended Import Parser", () => {
       const filePath = join(TEST_TEMP_DIR, "test.ts");
       await writeFile(filePath, fileContent);
 
-      const mockResolver: ImportResolver = (fromFile, specifier) => {
+      const mockResolver: ImportResolver = (_fromFile, specifier) => {
         switch (specifier) {
           case "./utils":
             return join(TEST_TEMP_DIR, "utils.ts");
@@ -177,7 +177,7 @@ describe("Extended Import Parser", () => {
       const filePath = join(TEST_TEMP_DIR, "test.ts");
       await writeFile(filePath, fileContent);
 
-      const mockResolver: ImportResolver = (fromFile, specifier) => {
+      const mockResolver: ImportResolver = (_fromFile, specifier) => {
         switch (specifier) {
           case "./math":
             return join(TEST_TEMP_DIR, "math.ts");
@@ -213,7 +213,7 @@ describe("Extended Import Parser", () => {
       const filePath = join(TEST_TEMP_DIR, "test.ts");
       await writeFile(filePath, fileContent);
 
-      const mockResolver: ImportResolver = (fromFile, specifier) => {
+      const mockResolver: ImportResolver = (_fromFile, specifier) => {
         switch (specifier) {
           case "./types":
             return join(TEST_TEMP_DIR, "types.ts");
@@ -266,7 +266,7 @@ describe("Extended Import Parser", () => {
       const filePath = join(TEST_TEMP_DIR, "test.ts");
       await writeFile(filePath, fileContent);
 
-      const mockResolver: ImportResolver = (fromFile, specifier) => {
+      const mockResolver: ImportResolver = (_fromFile, specifier) => {
         const localModules = [
           "./math",
           "./utils",
@@ -311,7 +311,7 @@ describe("Extended Import Parser", () => {
       const filePath = join(TEST_TEMP_DIR, "test.ts");
       await writeFile(filePath, fileContent);
 
-      const mockResolver: ImportResolver = (fromFile, specifier) => {
+      const mockResolver: ImportResolver = (_fromFile, specifier) => {
         if (specifier === "./utils") {
           return join(TEST_TEMP_DIR, "utils.ts");
         }
@@ -341,7 +341,7 @@ describe("Extended Import Parser", () => {
       const filePath = join(TEST_TEMP_DIR, "test.ts");
       await writeFile(filePath, fileContent);
 
-      const mockResolver: ImportResolver = (fromFile, specifier) => {
+      const mockResolver: ImportResolver = (_fromFile, specifier) => {
         const mapping: Record<string, string> = {
           "./utils": join(TEST_TEMP_DIR, "utils.ts"),
           "./config.json": join(TEST_TEMP_DIR, "config.json"),
@@ -378,7 +378,7 @@ describe("Extended Import Parser", () => {
       const filePath = join(TEST_TEMP_DIR, "test.ts");
       await writeFile(filePath, fileContent);
 
-      const mockResolver: ImportResolver = (fromFile, specifier) => {
+      const mockResolver: ImportResolver = (_fromFile, specifier) => {
         if (specifier === "./utils") {
           return join(TEST_TEMP_DIR, "utils.ts");
         }
@@ -407,7 +407,7 @@ describe("Extended Import Parser", () => {
       const filePath = join(TEST_TEMP_DIR, "test.ts");
       await writeFile(filePath, fileContent);
 
-      const mockResolver: ImportResolver = (fromFile, specifier) => {
+      const mockResolver: ImportResolver = (_fromFile, specifier) => {
         switch (specifier) {
           case "./math":
             return join(TEST_TEMP_DIR, "math.ts");
@@ -451,7 +451,7 @@ describe("Extended Import Parser", () => {
       const filePath = join(TEST_TEMP_DIR, "App.tsx");
       await writeFile(filePath, fileContent);
 
-      const mockResolver: ImportResolver = (fromFile, specifier) => {
+      const mockResolver: ImportResolver = (_fromFile, specifier) => {
         switch (specifier) {
           case "./components":
             return join(TEST_TEMP_DIR, "components.tsx");

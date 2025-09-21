@@ -56,6 +56,24 @@ const config = [
       ...eslintPluginTs.configs.recommended.rules,
     },
   },
+  {
+    files: ["tests/**/*.ts"],
+    rules: {
+      ...eslintPluginTs.configs.recommended.rules,
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          args: "all",
+          argsIgnorePattern: "^_",
+          caughtErrors: "all",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
+  },
 ];
 
 export default config;
