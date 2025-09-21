@@ -16,49 +16,55 @@ jest.mock("@google/genai", () => ({
 }));
 
 describe("GeminiLLMClient", () => {
-  let originalEnv: string | undefined;
+  // Store original environment for restoration
+  const originalEnv = process.env;
 
   beforeEach(() => {
-    // Store original environment variable
-    originalEnv = process.env.GEMINI_API_KEY;
-
     // Reset mocks
     jest.clearAllMocks();
+
+    // Create a clean environment mock
+    jest.replaceProperty(process, "env", {
+      ...originalEnv,
+      GEMINI_API_KEY: undefined, // Default to undefined for safety
+    });
   });
 
   afterEach(() => {
-    // Restore original environment variable
-    if (originalEnv !== undefined) {
-      process.env.GEMINI_API_KEY = originalEnv;
-    } else {
-      delete process.env.GEMINI_API_KEY;
-    }
+    // Restore original environment
+    jest.replaceProperty(process, "env", originalEnv);
   });
 
   describe("Constructor", () => {
     it("should create client with API key from environment", () => {
-      process.env.GEMINI_API_KEY = "test-api-key";
+      // Set API key in mocked environment
+      jest.replaceProperty(process, "env", {
+        ...originalEnv,
+        GEMINI_API_KEY: "test-api-key",
+      });
 
       const client = new GeminiLLMClient();
       expect(client).toBeInstanceOf(GeminiLLMClient);
     });
 
     it("should create client with API key from options", () => {
-      delete process.env.GEMINI_API_KEY;
-
+      // Ensure no API key in environment (already undefined by default)
       const client = new GeminiLLMClient({ apiKey: "test-api-key" });
       expect(client).toBeInstanceOf(GeminiLLMClient);
     });
 
     it("should throw error when no API key is provided", () => {
-      delete process.env.GEMINI_API_KEY;
-
+      // Environment already has no API key by default
       expect(() => new GeminiLLMClient()).toThrow(LLMError);
       expect(() => new GeminiLLMClient()).toThrow("Gemini API key is required");
     });
 
     it("should use default options when not provided", () => {
-      process.env.GEMINI_API_KEY = "test-key";
+      // Set API key in mocked environment
+      jest.replaceProperty(process, "env", {
+        ...originalEnv,
+        GEMINI_API_KEY: "test-key",
+      });
 
       const client = new GeminiLLMClient();
       expect(client).toBeInstanceOf(GeminiLLMClient);
@@ -82,7 +88,11 @@ describe("GeminiLLMClient", () => {
     let client: GeminiLLMClient;
 
     beforeEach(() => {
-      process.env.GEMINI_API_KEY = "test-api-key";
+      // Set API key in mocked environment for this test group
+      jest.replaceProperty(process, "env", {
+        ...originalEnv,
+        GEMINI_API_KEY: "test-api-key",
+      });
       client = new GeminiLLMClient();
     });
 
@@ -207,7 +217,11 @@ describe("GeminiLLMClient", () => {
     let client: GeminiLLMClient;
 
     beforeEach(() => {
-      process.env.GEMINI_API_KEY = "test-api-key";
+      // Set API key in mocked environment for this test group
+      jest.replaceProperty(process, "env", {
+        ...originalEnv,
+        GEMINI_API_KEY: "test-api-key",
+      });
       client = new GeminiLLMClient({ maxRetries: 2, baseDelay: 10 }); // Fast retries for testing
     });
 
@@ -321,7 +335,11 @@ describe("GeminiLLMClient", () => {
     let client: GeminiLLMClient;
 
     beforeEach(() => {
-      process.env.GEMINI_API_KEY = "test-api-key";
+      // Set API key in mocked environment for this test group
+      jest.replaceProperty(process, "env", {
+        ...originalEnv,
+        GEMINI_API_KEY: "test-api-key",
+      });
       client = new GeminiLLMClient();
     });
 
@@ -414,7 +432,11 @@ describe("GeminiLLMClient", () => {
     let client: GeminiLLMClient;
 
     beforeEach(() => {
-      process.env.GEMINI_API_KEY = "test-api-key";
+      // Set API key in mocked environment for this test group
+      jest.replaceProperty(process, "env", {
+        ...originalEnv,
+        GEMINI_API_KEY: "test-api-key",
+      });
       client = new GeminiLLMClient({ baseDelay: 100, maxRetries: 3 });
     });
 
@@ -446,7 +468,11 @@ describe("GeminiLLMClient", () => {
     let client: GeminiLLMClient;
 
     beforeEach(() => {
-      process.env.GEMINI_API_KEY = "test-api-key";
+      // Set API key in mocked environment for this test group
+      jest.replaceProperty(process, "env", {
+        ...originalEnv,
+        GEMINI_API_KEY: "test-api-key",
+      });
       client = new GeminiLLMClient();
 
       const mockResponse = {
@@ -519,7 +545,11 @@ describe("GeminiLLMClient", () => {
     let client: GeminiLLMClient;
 
     beforeEach(() => {
-      process.env.GEMINI_API_KEY = "test-api-key";
+      // Set API key in mocked environment for this test group
+      jest.replaceProperty(process, "env", {
+        ...originalEnv,
+        GEMINI_API_KEY: "test-api-key",
+      });
       client = new GeminiLLMClient();
     });
 
