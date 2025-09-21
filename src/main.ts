@@ -7,6 +7,8 @@ import { parseImports } from "./parser.js";
 import { buildGraph, serializeAdjacency } from "./graph-builder.js";
 import { printJson, writeJsonToFile } from "./reporter.js";
 import { logger } from "./utils/logger.js";
+import { analyzeProgrammatically, analyzeWithLLM } from "./analyzer.js";
+import { GeminiLLMClient } from "./llm-client.js";
 
 /**
  * Main CLI entry point for the TypeScript Dependency Analysis tool.
@@ -47,6 +49,10 @@ program
     "--concurrency <number>",
     "Maximum number of files to process concurrently (default: 10)",
     (value) => parseInt(value, 10),
+  )
+  .option(
+    "--use-programmatic-analysis",
+    "Use only programmatic analysis (skip LLM integration)",
   );
 
 /**
@@ -58,6 +64,7 @@ async function runAnalysis(options: {
   tsconfig?: string;
   maxFiles?: number;
   concurrency?: number;
+  useProgrammaticAnalysis?: boolean;
 }): Promise<void> {
   try {
     logger.info({ options }, "Starting TypeScript dependency analysis");
@@ -119,10 +126,43 @@ async function runAnalysis(options: {
       "Dependency graph built",
     );
 
-    // Prepare output data
-    const analysisResult = {
-      graph: adjacencyList,
-    };
+    // Perform analysis based on the analysis mode
+    let analysisResult;
+
+    if (options.useProgrammaticAnalysis) {
+      logger.info("Performing programmatic analysis only");
+      const insights = analyzeProgrammatically(graph);
+      analysisResult = {
+        graph: adjacencyList,
+        insights,
+      };
+    } else {
+      logger.info("Performing LLM-enhanced analysis");
+      try {
+        const llmClient = new GeminiLLMClient();
+        analysisResult = await analyzeWithLLM(graph, llmClient);
+      } catch (error) {
+        logger.warn(
+          { error: error instanceof Error ? error.message : String(error) },
+          "LLM analysis failed, falling back to programmatic analysis",
+        );
+        const insights = analyzeProgrammatically(graph);
+        analysisResult = {
+          graph: adjacencyList,
+          insights,
+        };
+      }
+    }
+
+    logger.info(
+      {
+        circularDependencies:
+          analysisResult.insights.circularDependencies.length,
+        tightCoupling: analysisResult.insights.tightCoupling.length,
+        recommendations: analysisResult.insights.recommendations.length,
+      },
+      "Analysis completed",
+    );
 
     // Output results
     if (options.output) {
@@ -177,6 +217,7 @@ async function main(): Promise<void> {
     tsconfig: options.tsconfig,
     maxFiles: options.maxFiles,
     concurrency: options.concurrency,
+    useProgrammaticAnalysis: options.useProgrammaticAnalysis,
   });
 }
 

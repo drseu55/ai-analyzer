@@ -61,7 +61,7 @@ export interface GeminiLLMClientOptions {
   maxRetries?: number;
   /** Base delay for exponential backoff in milliseconds (defaults to 1000) */
   baseDelay?: number;
-  /** Request timeout in milliseconds (defaults to 30000) */
+  /** Request timeout in milliseconds (defaults to 120000) */
   timeout?: number;
 }
 
@@ -98,7 +98,7 @@ export class GeminiLLMClient implements ILLMClient {
       modelName: options.modelName ?? "gemini-2.5-flash",
       maxRetries: options.maxRetries ?? 3,
       baseDelay: options.baseDelay ?? 1000,
-      timeout: options.timeout ?? 30000,
+      timeout: options.timeout ?? 120000,
     };
 
     logger.info(
