@@ -1,6 +1,12 @@
 import type { Graph } from "@dagrejs/graphlib";
-import { findCycles, computeFanInOut } from "./graph-builder.js";
-import type { InsightPayload } from "./types.js";
+import {
+  findCycles,
+  computeFanInOut,
+  serializeAdjacency,
+} from "./graph-builder.js";
+import type { InsightPayload, AnalysisOutput } from "./types.js";
+import { AnalysisOutputSchema } from "./types.js";
+import type { ILLMClient } from "./llm-client.js";
 import { basename } from "path";
 
 /**
@@ -352,4 +358,39 @@ export function analyzeGraphHealth(graph: Graph): {
     metrics,
     issues,
   };
+}
+
+/**
+ * Analyzes a dependency graph using LLM-provided insights only.
+ *
+ * This function provides LLM-based analysis by:
+ * 1. Serializing the graph to adjacency list format
+ * 2. Getting LLM insights for advanced analysis
+ * 3. Validating the final output
+ *
+ * @param graph - The dependency graph to analyze
+ * @param llm - LLM client for getting insights
+ * @returns Promise resolving to validated AnalysisOutput with LLM insights
+ */
+export async function analyzeWithLLM(
+  graph: Graph,
+  llm: ILLMClient,
+): Promise<AnalysisOutput> {
+  const adjacencyList = serializeAdjacency(graph);
+
+  const llmInsights = await llm.analyze(JSON.stringify(adjacencyList));
+
+  const output: AnalysisOutput = {
+    graph: adjacencyList,
+    insights: llmInsights,
+  };
+
+  const validationResult = AnalysisOutputSchema.safeParse(output);
+  if (!validationResult.success) {
+    throw new Error(
+      `Analysis output validation failed: ${validationResult.error.message}`,
+    );
+  }
+
+  return validationResult.data;
 }
