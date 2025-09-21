@@ -28,17 +28,34 @@ export type ImportResolver = (
 export type ParsedImports = Record<string, string[]>;
 
 /**
+ * Options for parsing imports with performance controls
+ */
+export interface ParseImportsOptions {
+  /** Maximum number of files to process concurrently (default: 10) */
+  concurrency?: number;
+}
+
+/**
  * Parses static import statements from TypeScript files and resolves them to file paths.
  *
  * @param files - Array of absolute file paths to parse
  * @param resolve - Function to resolve import specifiers to absolute paths
+ * @param options - Optional performance controls
  * @returns Promise resolving to mapping of file paths to their imported file paths
  */
 export async function parseImports(
   files: string[],
   resolve: ImportResolver,
+  options: ParseImportsOptions = {},
 ): Promise<ParsedImports> {
-  logger.debug({ totalFiles: files.length }, "Starting import parsing");
+  const { concurrency = 10 } = options;
+
+  // Ensure concurrency is a positive number
+  const safeConcurrency = Math.max(1, concurrency || 10);
+  logger.debug(
+    { totalFiles: files.length, concurrency },
+    "Starting import parsing",
+  );
 
   // Validate inputs
   if (!files || files.length === 0) {
@@ -87,33 +104,70 @@ export async function parseImports(
 
   const result: ParsedImports = {};
 
-  // Process each source file
-  logger.debug("Processing source files for imports");
-  for (const sourceFile of sourceFiles) {
-    const filePath = sourceFile.getFilePath();
-    const imports = new Set<string>();
+  // Process files in batches for concurrency control
+  logger.debug(
+    { batchSize: safeConcurrency },
+    "Processing source files for imports",
+  );
 
-    logger.trace({ filePath }, "Processing file");
+  // Create batches for concurrent processing
+  const batches: SourceFile[][] = [];
+  for (let i = 0; i < sourceFiles.length; i += safeConcurrency) {
+    batches.push(sourceFiles.slice(i, i + safeConcurrency));
+  }
 
-    // Process static import declarations
-    processStaticImports(sourceFile, filePath, resolve, imports);
+  logger.debug(
+    { totalBatches: batches.length, filesPerBatch: safeConcurrency },
+    "Created processing batches",
+  );
 
-    // Process dynamic imports
-    processDynamicImports(sourceFile, filePath, resolve, imports);
-
-    // Process re-exports
-    processReExports(sourceFile, filePath, resolve, imports);
-
-    // Convert to sorted array and store
-    result[filePath] = Array.from(imports).sort();
-
-    logger.trace(
+  for (const [batchIndex, batch] of batches.entries()) {
+    logger.debug(
       {
-        filePath,
-        importCount: result[filePath].length,
+        batchIndex: batchIndex + 1,
+        totalBatches: batches.length,
+        filesInBatch: batch.length,
       },
-      "Processed file imports",
+      "Processing batch",
     );
+
+    // Process batch concurrently
+    const batchPromises = batch.map(async (sourceFile) => {
+      const filePath = sourceFile.getFilePath();
+      const imports = new Set<string>();
+
+      logger.trace({ filePath }, "Processing file");
+
+      // Process static import declarations
+      processStaticImports(sourceFile, filePath, resolve, imports);
+
+      // Process dynamic imports
+      processDynamicImports(sourceFile, filePath, resolve, imports);
+
+      // Process re-exports
+      processReExports(sourceFile, filePath, resolve, imports);
+
+      // Convert to sorted array
+      const sortedImports = Array.from(imports).sort();
+
+      logger.trace(
+        {
+          filePath,
+          importCount: sortedImports.length,
+        },
+        "Processed file imports",
+      );
+
+      return { filePath, imports: sortedImports };
+    });
+
+    // Wait for all files in this batch to complete
+    const batchResults = await Promise.all(batchPromises);
+
+    // Merge results
+    for (const { filePath, imports } of batchResults) {
+      result[filePath] = imports;
+    }
   }
 
   logger.info(

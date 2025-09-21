@@ -42,6 +42,11 @@ program
     "--max-files <number>",
     "Maximum number of files to analyze (optional)",
     (value) => parseInt(value, 10),
+  )
+  .option(
+    "--concurrency <number>",
+    "Maximum number of files to process concurrently (default: 10)",
+    (value) => parseInt(value, 10),
   );
 
 /**
@@ -52,6 +57,7 @@ async function runAnalysis(options: {
   output?: string;
   tsconfig?: string;
   maxFiles?: number;
+  concurrency?: number;
 }): Promise<void> {
   try {
     logger.info({ options }, "Starting TypeScript dependency analysis");
@@ -88,7 +94,9 @@ async function runAnalysis(options: {
 
     // Parse imports from all files
     logger.debug("Parsing imports and dependencies");
-    const parsedImports = await parseImports(files, pathResolver);
+    const parsedImports = await parseImports(files, pathResolver, {
+      concurrency: options.concurrency,
+    });
 
     const totalDependencies = Object.values(parsedImports).reduce(
       (sum, deps) => sum + deps.length,
@@ -168,6 +176,7 @@ async function main(): Promise<void> {
     output: options.output,
     tsconfig: options.tsconfig,
     maxFiles: options.maxFiles,
+    concurrency: options.concurrency,
   });
 }
 
