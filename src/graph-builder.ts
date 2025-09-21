@@ -1,6 +1,7 @@
 import pkg from "@dagrejs/graphlib";
 import type { Graph } from "@dagrejs/graphlib";
 const { Graph: GraphConstructor, alg } = pkg;
+import { logger } from "./utils/logger.js";
 
 /**
  * Represents an adjacency mapping for dependency graphs.
@@ -21,6 +22,11 @@ export type Cycle = string[];
  * @returns Directed graph with nodes and edges representing dependencies
  */
 export function buildGraph(adjacency: AdjacencyMapping): Graph {
+  logger.debug(
+    { sourceFiles: Object.keys(adjacency).length },
+    "Building dependency graph",
+  );
+
   const graph = new GraphConstructor({ directed: true });
 
   // Collect all unique nodes (files)
@@ -37,6 +43,8 @@ export function buildGraph(adjacency: AdjacencyMapping): Graph {
       allNodes.add(dependency);
     }
   }
+
+  logger.debug({ nodeCount: allNodes.size }, "Collected graph nodes");
 
   // Add all nodes to the graph
   for (const node of allNodes) {
@@ -84,13 +92,17 @@ export function serializeAdjacency(graph: Graph): AdjacencyMapping {
  * @returns Array of cycles, where each cycle is an array of node IDs forming a loop
  */
 export function findCycles(graph: Graph): Cycle[] {
+  logger.debug("Finding cycles in dependency graph");
+
   try {
     // Use graphlib's built-in cycle detection algorithm
     const cycles = alg.findCycles(graph);
 
+    logger.debug({ cycleCount: cycles.length }, "Cycle detection completed");
+
     // Sort cycles for deterministic output
     // Sort each individual cycle and then sort the array of cycles
-    return cycles
+    const sortedCycles = cycles
       .map((cycle) => cycle.sort()) // Sort nodes within each cycle
       .sort((a, b) => {
         // Sort cycles by their first element, then by length
@@ -100,9 +112,24 @@ export function findCycles(graph: Graph): Cycle[] {
         }
         return a.length - b.length;
       });
+
+    if (sortedCycles.length > 0) {
+      logger.warn(
+        {
+          cycleCount: sortedCycles.length,
+          cycles: sortedCycles.map((cycle) => cycle.join(" -> ")),
+        },
+        "Circular dependencies detected",
+      );
+    }
+
+    return sortedCycles;
   } catch (error) {
     // Handle any errors in cycle detection gracefully
-    console.warn("Error during cycle detection:", error);
+    logger.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "Error during cycle detection",
+    );
     return [];
   }
 }
@@ -119,6 +146,8 @@ export function getGraphStats(graph: Graph): {
   hasCycles: boolean;
   maxDepth: number;
 } {
+  logger.debug("Computing graph statistics");
+
   const nodeCount = graph.nodeCount();
   const edgeCount = graph.edgeCount();
   const cycles = findCycles(graph);
@@ -130,18 +159,26 @@ export function getGraphStats(graph: Graph): {
     try {
       const topoOrder = alg.topsort(graph);
       maxDepth = calculateMaxDepth(graph, topoOrder);
+      logger.debug({ maxDepth }, "Calculated maximum dependency depth");
     } catch (_error) {
       // If topological sort fails, graph might have cycles we missed
       maxDepth = -1;
+      logger.warn(
+        "Failed to calculate maximum depth, graph may have undetected cycles",
+      );
     }
   }
 
-  return {
+  const stats = {
     nodeCount,
     edgeCount,
     hasCycles,
     maxDepth,
   };
+
+  logger.debug(stats, "Graph statistics computed");
+
+  return stats;
 }
 
 /**

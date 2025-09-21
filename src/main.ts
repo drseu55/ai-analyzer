@@ -8,6 +8,7 @@ import { loadTsConfig, createPathResolver } from "./utils/tsconfig.js";
 import { parseImports } from "./parser.js";
 import { buildGraph, serializeAdjacency } from "./graph-builder.js";
 import { printJson, writeJsonToFile } from "./reporter.js";
+import { logger } from "./utils/logger.js";
 
 /**
  * Main CLI entry point for the TypeScript Dependency Analysis tool.
@@ -58,48 +59,62 @@ async function runAnalysis(options: {
   maxFiles?: number;
 }): Promise<void> {
   try {
-    console.error("Starting TypeScript dependency analysis...");
+    logger.info({ options }, "Starting TypeScript dependency analysis");
 
     // Resolve and validate the target directory
     const targetDir = resolve(options.dir);
-    console.error(`Analyzing directory: ${targetDir}`);
+    logger.info({ targetDir }, "Analyzing directory");
 
     // Find TypeScript files
-    console.error("Finding TypeScript files...");
+    logger.debug("Finding TypeScript files");
     const files = await findTypeScriptFiles(targetDir, {
       maxFiles: options.maxFiles,
     });
 
     if (files.length === 0) {
-      console.error("No TypeScript files found in the specified directory");
+      logger.error(
+        { targetDir },
+        "No TypeScript files found in the specified directory",
+      );
       process.exit(1);
     }
 
-    console.error(`Found ${files.length} TypeScript files`);
+    logger.info({ fileCount: files.length }, "Found TypeScript files");
 
     // Load TypeScript configuration
-    console.error("Loading TypeScript configuration...");
+    logger.debug("Loading TypeScript configuration");
     const tsconfigPath = options.tsconfig
       ? resolve(options.tsconfig)
       : undefined;
 
     const tsConfig = await loadTsConfig(tsconfigPath);
     const pathResolver = createPathResolver(targetDir, tsConfig);
+    logger.debug({ tsconfigPath }, "TypeScript configuration loaded");
 
     // Parse imports from all files
-    console.error("Parsing imports and dependencies...");
+    logger.debug("Parsing imports and dependencies");
     const parsedImports = await parseImports(files, pathResolver);
 
     const totalDependencies = Object.values(parsedImports).reduce(
       (sum, deps) => sum + deps.length,
       0,
     );
-    console.error(`Parsed ${totalDependencies} dependencies`);
+    logger.info(
+      { totalDependencies, uniqueFiles: Object.keys(parsedImports).length },
+      "Parsed dependencies",
+    );
 
     // Build dependency graph
-    console.error("Building dependency graph...");
+    logger.debug("Building dependency graph");
     const graph = buildGraph(parsedImports);
     const adjacencyList = serializeAdjacency(graph);
+    logger.info(
+      {
+        nodeCount: graph.nodeCount(),
+        edgeCount: graph.edgeCount(),
+      },
+      "Dependency graph built",
+    );
 
     // Prepare output data
     const analysisResult = {
@@ -108,33 +123,32 @@ async function runAnalysis(options: {
 
     // Output results
     if (options.output) {
-      console.error(`Writing results to: ${options.output}`);
+      logger.info({ outputPath: options.output }, "Writing results to file");
       await writeJsonToFile(options.output, analysisResult);
-      console.error("Analysis complete! Results written to file.");
+      logger.info("Analysis complete! Results written to file");
     } else {
-      console.error("Outputting results to console:");
+      logger.debug("Outputting results to console");
       printJson(analysisResult);
     }
   } catch (error) {
-    console.error("Analysis failed:");
+    logger.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "Analysis failed",
+    );
 
     if (error instanceof Error) {
-      console.error(`${error.message}`);
-
       // Provide helpful suggestions for common errors
       if (error.message.includes("ENOENT")) {
-        console.error(
+        logger.error(
           "Tip: Please check that the directory path exists and is accessible",
         );
       } else if (error.message.includes("permission")) {
-        console.error(
+        logger.error(
           "Tip: Please check that you have read permissions for the directory",
         );
       } else if (error.message.includes("tsconfig")) {
-        console.error("Tip: Please check that the tsconfig.json file is valid");
+        logger.error("Tip: Please check that the tsconfig.json file is valid");
       }
-    } else {
-      console.error(`   Unknown error: ${String(error)}`);
     }
 
     process.exit(1);
@@ -150,7 +164,7 @@ async function main(): Promise<void> {
 
   // Validate required options
   if (!options.dir) {
-    console.error("Error: --dir option is required");
+    logger.error("Error: --dir option is required");
     program.help();
   }
 
@@ -169,7 +183,10 @@ export { runAnalysis, main };
 // Note: This detection works when the file is compiled and run with Node.js
 if (process.argv[1] && process.argv[1].endsWith("/main.js")) {
   main().catch((error) => {
-    console.error("Fatal error:", error);
+    logger.fatal(
+      { error: error instanceof Error ? error.message : String(error) },
+      "Fatal error",
+    );
     process.exit(1);
   });
 }

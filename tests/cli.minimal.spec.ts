@@ -10,15 +10,16 @@ import * as parser from "../src/parser.js";
 describe("CLI Minimal Integration", () => {
   let tempDir: string;
   let tempFiles: string[] = [];
-  let consoleSpy: jest.SpyInstance;
+  let loggerSpy: jest.SpyInstance;
   let processExitSpy: jest.SpyInstance;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tempDir = join(tmpdir(), `cli-test-${Date.now()}`);
     tempFiles = [];
 
-    // Mock console.error to avoid cluttering test output
-    consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    // Mock logger.error to avoid cluttering test output and capture calls
+    const { logger } = await import("../src/utils/logger.js");
+    loggerSpy = jest.spyOn(logger, "error").mockImplementation(() => {});
 
     // Mock process.exit to prevent actual exits during tests
     processExitSpy = jest.spyOn(process, "exit").mockImplementation(() => {
@@ -37,7 +38,7 @@ describe("CLI Minimal Integration", () => {
     }
 
     // Restore mocks
-    consoleSpy.mockRestore();
+    loggerSpy.mockRestore();
     processExitSpy.mockRestore();
     jest.restoreAllMocks();
   });
@@ -401,8 +402,13 @@ describe("CLI Minimal Integration", () => {
       );
 
       // Verify error logging
-      expect(consoleSpy).toHaveBeenCalledWith("Analysis failed:");
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("Tip:"));
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ error: expect.any(String) }),
+        "Analysis failed",
+      );
+      expect(loggerSpy).toHaveBeenCalledWith(
+        "Tip: Please check that you have read permissions for the directory",
+      );
     });
 
     it("should handle parser errors gracefully", async () => {

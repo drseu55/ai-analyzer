@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { InsightPayload, InsightPayloadSchema } from "./types.js";
+import { logger } from "./utils/logger.js";
 
 /**
  * Interface for LLM clients that can analyze dependency graphs and provide insights.
@@ -72,9 +73,19 @@ export class GeminiLLMClient implements ILLMClient {
   private readonly options: Required<GeminiLLMClientOptions>;
 
   constructor(options: GeminiLLMClientOptions = {}) {
+    logger.debug(
+      {
+        modelName: options.modelName,
+        maxRetries: options.maxRetries,
+        timeout: options.timeout,
+      },
+      "Initializing Gemini LLM client",
+    );
+
     const apiKey = options.apiKey ?? process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
+      logger.error("Gemini API key is missing");
       throw new LLMError(
         "Gemini API key is required. Set GEMINI_API_KEY environment variable or pass apiKey option.",
         "MISSING_API_KEY",
@@ -89,6 +100,14 @@ export class GeminiLLMClient implements ILLMClient {
       baseDelay: options.baseDelay ?? 1000,
       timeout: options.timeout ?? 30000,
     };
+
+    logger.info(
+      {
+        modelName: this.options.modelName,
+        maxRetries: this.options.maxRetries,
+      },
+      "Gemini LLM client initialized successfully",
+    );
   }
 
   /**
@@ -98,17 +117,32 @@ export class GeminiLLMClient implements ILLMClient {
    * @returns Promise resolving to validated insights
    */
   async analyze(graphJson: string): Promise<InsightPayload> {
+    logger.info(
+      {
+        inputSize: graphJson.length,
+        modelName: this.options.modelName,
+      },
+      "Starting Gemini analysis",
+    );
+
     // Sanitize and validate input
+    logger.debug("Sanitizing graph JSON for LLM");
     const sanitizedGraphJson = this.sanitizeGraphJson(graphJson);
 
     // Craft prompt for analysis
+    logger.debug("Crafting analysis prompt");
     const prompt = this.craftAnalysisPrompt(sanitizedGraphJson);
 
     // Execute with retry logic
+    logger.debug("Executing LLM request with retry logic");
     const response = await this.executeWithRetries(prompt);
 
     // Parse and validate response
-    return this.parseAndValidateResponse(response);
+    logger.debug("Parsing and validating LLM response");
+    const result = this.parseAndValidateResponse(response);
+
+    logger.info("Gemini analysis completed successfully");
+    return result;
   }
 
   /**
@@ -201,9 +235,22 @@ Analyze the dependency graph and respond with the JSON object only (no additiona
    * @returns Raw response text from LLM
    */
   private async executeWithRetries(prompt: string): Promise<string> {
+    logger.debug(
+      {
+        maxRetries: this.options.maxRetries,
+        timeout: this.options.timeout,
+      },
+      "Starting LLM request with retry logic",
+    );
+
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= this.options.maxRetries; attempt++) {
+      logger.debug(
+        { attempt, maxRetries: this.options.maxRetries },
+        "Attempting LLM request",
+      );
+
       const timeoutInfo = this.createTimeoutPromise();
 
       try {
@@ -219,11 +266,20 @@ Analyze the dependency graph and respond with the JSON object only (no additiona
         timeoutInfo.cleanup();
 
         if (!result.text) {
+          logger.warn({ attempt }, "Empty response received from Gemini");
           throw new LLMError(
             "Empty response received from Gemini",
             "EMPTY_RESPONSE",
           );
         }
+
+        logger.debug(
+          {
+            attempt,
+            responseLength: result.text.length,
+          },
+          "LLM request successful",
+        );
 
         return result.text;
       } catch (error) {
@@ -232,18 +288,39 @@ Analyze the dependency graph and respond with the JSON object only (no additiona
 
         lastError = error instanceof Error ? error : new Error(String(error));
 
+        logger.warn(
+          {
+            attempt,
+            error: lastError.message,
+            retryable: this.isRetryableError(error),
+          },
+          "LLM request failed",
+        );
+
         // Don't retry on non-retryable errors
         if (!this.isRetryableError(error)) {
+          logger.error(
+            { error: lastError.message },
+            "Non-retryable error encountered, aborting",
+          );
           throw this.convertToLLMError(error);
         }
 
         // If this was the last attempt, throw the error
         if (attempt === this.options.maxRetries) {
+          logger.error(
+            {
+              maxRetries: this.options.maxRetries,
+              finalError: lastError.message,
+            },
+            "Max retries exceeded, aborting",
+          );
           throw this.convertToLLMError(lastError);
         }
 
         // Wait before retrying
         const delay = this.calculateRetryDelay(attempt);
+        logger.debug({ attempt, delayMs: delay }, "Waiting before retry");
         await this.sleep(delay);
       }
     }

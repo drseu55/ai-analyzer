@@ -8,6 +8,7 @@ import type { InsightPayload, AnalysisOutput } from "./types.js";
 import { AnalysisOutputSchema } from "./types.js";
 import type { ILLMClient } from "./llm-client.js";
 import { basename } from "path";
+import { logger } from "./utils/logger.js";
 
 /**
  * Options for configuring the programmatic analyzer
@@ -44,22 +45,45 @@ export function analyzeProgrammatically(
   graph: Graph,
   options: AnalyzerOptions = {},
 ): InsightPayload {
+  logger.debug(
+    {
+      nodeCount: graph.nodeCount(),
+      edgeCount: graph.edgeCount(),
+      options,
+    },
+    "Starting programmatic analysis",
+  );
+
   const opts = { ...DEFAULT_OPTIONS, ...options };
 
   // Find circular dependencies
+  logger.debug("Detecting circular dependencies");
   const circularDependencies = detectCircularDependencies(graph, opts);
 
   // Detect tight coupling
+  logger.debug("Detecting tight coupling");
   const tightCoupling = detectTightCoupling(graph, opts);
 
   // Generate recommendations
+  logger.debug("Generating recommendations");
   const recommendations = generateRecommendations(graph, opts);
 
-  return {
+  const result = {
     circularDependencies,
     tightCoupling,
     recommendations,
   };
+
+  logger.info(
+    {
+      circularDependenciesCount: circularDependencies.length,
+      tightCouplingCount: tightCoupling.length,
+      recommendationsCount: recommendations.length,
+    },
+    "Programmatic analysis completed",
+  );
+
+  return result;
 }
 
 /**
@@ -376,9 +400,33 @@ export async function analyzeWithLLM(
   graph: Graph,
   llm: ILLMClient,
 ): Promise<AnalysisOutput> {
+  logger.info(
+    {
+      nodeCount: graph.nodeCount(),
+      edgeCount: graph.edgeCount(),
+    },
+    "Starting LLM analysis",
+  );
+
   const adjacencyList = serializeAdjacency(graph);
 
+  logger.debug(
+    {
+      serializedSize: JSON.stringify(adjacencyList).length,
+    },
+    "Serialized graph for LLM analysis",
+  );
+
   const llmInsights = await llm.analyze(JSON.stringify(adjacencyList));
+
+  logger.debug(
+    {
+      circularDependenciesFound: llmInsights.circularDependencies.length,
+      tightCouplingFound: llmInsights.tightCoupling.length,
+      recommendationsGenerated: llmInsights.recommendations.length,
+    },
+    "LLM analysis completed",
+  );
 
   const output: AnalysisOutput = {
     graph: adjacencyList,
@@ -387,10 +435,17 @@ export async function analyzeWithLLM(
 
   const validationResult = AnalysisOutputSchema.safeParse(output);
   if (!validationResult.success) {
+    logger.error(
+      {
+        error: validationResult.error.message,
+      },
+      "Analysis output validation failed",
+    );
     throw new Error(
       `Analysis output validation failed: ${validationResult.error.message}`,
     );
   }
 
+  logger.info("LLM analysis validation successful");
   return validationResult.data;
 }

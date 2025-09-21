@@ -11,6 +11,7 @@ import {
   StringLiteral,
 } from "ts-morph";
 import { extname } from "path";
+import { logger } from "./utils/logger.js";
 
 /**
  * Function type for resolving import specifiers to absolute file paths
@@ -37,24 +38,37 @@ export async function parseImports(
   files: string[],
   resolve: ImportResolver,
 ): Promise<ParsedImports> {
+  logger.debug({ totalFiles: files.length }, "Starting import parsing");
+
   // Validate inputs
   if (!files || files.length === 0) {
+    logger.debug("No files provided for parsing");
     return {};
   }
 
   if (!resolve || typeof resolve !== "function") {
+    logger.error("Invalid resolve function provided");
     throw new Error("resolve function is required");
   }
 
   // Filter to only TypeScript files
   const typeScriptFiles = files.filter(isTypeScriptFile);
+  logger.debug(
+    {
+      typeScriptFiles: typeScriptFiles.length,
+      filteredOut: files.length - typeScriptFiles.length,
+    },
+    "Filtered TypeScript files",
+  );
 
   if (typeScriptFiles.length === 0) {
+    logger.debug("No TypeScript files found after filtering");
     return {};
   }
 
   // Create ts-morph project without in-memory filesystem
   // We'll use the real filesystem since we're working with real files
+  logger.debug("Creating TypeScript project for parsing");
   const project = new Project({
     compilerOptions: {
       target: ScriptTarget.ESNext,
@@ -66,6 +80,7 @@ export async function parseImports(
   });
 
   // Add files to project
+  logger.debug("Adding files to TypeScript project");
   const sourceFiles = typeScriptFiles.map((filePath) => {
     return project.addSourceFileAtPath(filePath);
   });
@@ -73,9 +88,12 @@ export async function parseImports(
   const result: ParsedImports = {};
 
   // Process each source file
+  logger.debug("Processing source files for imports");
   for (const sourceFile of sourceFiles) {
     const filePath = sourceFile.getFilePath();
     const imports = new Set<string>();
+
+    logger.trace({ filePath }, "Processing file");
 
     // Process static import declarations
     processStaticImports(sourceFile, filePath, resolve, imports);
@@ -88,7 +106,26 @@ export async function parseImports(
 
     // Convert to sorted array and store
     result[filePath] = Array.from(imports).sort();
+
+    logger.trace(
+      {
+        filePath,
+        importCount: result[filePath].length,
+      },
+      "Processed file imports",
+    );
   }
+
+  logger.info(
+    {
+      filesProcessed: Object.keys(result).length,
+      totalImports: Object.values(result).reduce(
+        (sum, imports) => sum + imports.length,
+        0,
+      ),
+    },
+    "Import parsing completed",
+  );
 
   return result;
 }
