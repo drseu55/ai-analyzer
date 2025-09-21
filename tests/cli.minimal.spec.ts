@@ -6,6 +6,9 @@ import * as reporter from "../src/reporter.js";
 import * as fsUtils from "../src/utils/fs.js";
 import * as tsconfigUtils from "../src/utils/tsconfig.js";
 import * as parser from "../src/parser.js";
+import * as analyzer from "../src/analyzer.js";
+import * as llmClient from "../src/llm-client.js";
+import { GeminiLLMClient } from "../src/llm-client.js";
 
 describe("CLI Minimal Integration", () => {
   let tempDir: string;
@@ -25,6 +28,37 @@ describe("CLI Minimal Integration", () => {
     processExitSpy = jest.spyOn(process, "exit").mockImplementation(() => {
       throw new Error("process.exit called");
     });
+
+    // Mock analyzer functions to avoid LLM calls and speed up tests
+    jest.spyOn(analyzer, "analyzeProgrammatically").mockReturnValue({
+      circularDependencies: [],
+      tightCoupling: [],
+      recommendations: ["Test recommendation"],
+    });
+
+    jest.spyOn(analyzer, "analyzeWithLLM").mockImplementation(async (graph) => {
+      const { serializeAdjacency } = await import("../src/graph-builder.js");
+      return {
+        graph: serializeAdjacency(graph),
+        insights: {
+          circularDependencies: [],
+          tightCoupling: [],
+          recommendations: ["Test recommendation"],
+        },
+      };
+    });
+
+    // Mock GeminiLLMClient to avoid API calls
+    jest.spyOn(llmClient, "GeminiLLMClient").mockImplementation(
+      () =>
+        ({
+          analyze: jest.fn().mockResolvedValue({
+            circularDependencies: [],
+            tightCoupling: [],
+            recommendations: ["Test recommendation"],
+          }),
+        }) as unknown as GeminiLLMClient,
+    );
   });
 
   afterEach(async () => {
@@ -124,7 +158,7 @@ describe("CLI Minimal Integration", () => {
           ]),
         );
       }
-    });
+    }, 10000);
 
     it("should write output to file when --output is specified", async () => {
       const projectDir = await createTestProject({

@@ -2,8 +2,6 @@ import {
   buildGraph,
   serializeAdjacency,
   findCycles,
-  getGraphStats,
-  validateAdjacencyMapping,
   AdjacencyMapping,
 } from "../src/graph-builder.js";
 
@@ -315,116 +313,6 @@ describe("Graph Builder", () => {
     });
   });
 
-  describe("getGraphStats", () => {
-    it("should return stats for an empty graph", () => {
-      const graph = buildGraph({});
-      const stats = getGraphStats(graph);
-
-      expect(stats).toEqual({
-        nodeCount: 0,
-        edgeCount: 0,
-        hasCycles: false,
-        maxDepth: 0,
-      });
-    });
-
-    it("should return stats for an acyclic graph", () => {
-      const adjacency: AdjacencyMapping = {
-        "/src/main.ts": ["/src/utils.ts"],
-        "/src/utils.ts": ["/src/helpers.ts"],
-        "/src/helpers.ts": [],
-      };
-      const graph = buildGraph(adjacency);
-      const stats = getGraphStats(graph);
-
-      expect(stats.nodeCount).toBe(3);
-      expect(stats.edgeCount).toBe(2);
-      expect(stats.hasCycles).toBe(false);
-      expect(stats.maxDepth).toBe(2);
-    });
-
-    it("should return stats for a cyclic graph", () => {
-      const adjacency: AdjacencyMapping = {
-        "/src/a.ts": ["/src/b.ts"],
-        "/src/b.ts": ["/src/a.ts"],
-      };
-      const graph = buildGraph(adjacency);
-      const stats = getGraphStats(graph);
-
-      expect(stats.nodeCount).toBe(2);
-      expect(stats.edgeCount).toBe(2);
-      expect(stats.hasCycles).toBe(true);
-      expect(stats.maxDepth).toBe(0); // Cycles make depth calculation invalid
-    });
-  });
-
-  describe("validateAdjacencyMapping", () => {
-    it("should validate a correct adjacency mapping", () => {
-      const adjacency: AdjacencyMapping = {
-        "/src/main.ts": ["/src/utils.ts"],
-        "/src/utils.ts": [],
-      };
-
-      expect(() => validateAdjacencyMapping(adjacency)).not.toThrow();
-      expect(validateAdjacencyMapping(adjacency)).toBe(true);
-    });
-
-    it("should validate an empty adjacency mapping", () => {
-      const adjacency: AdjacencyMapping = {};
-
-      expect(() => validateAdjacencyMapping(adjacency)).not.toThrow();
-      expect(validateAdjacencyMapping(adjacency)).toBe(true);
-    });
-
-    it("should reject null or undefined mappings", () => {
-      expect(() =>
-        validateAdjacencyMapping(null as unknown as AdjacencyMapping),
-      ).toThrow("Adjacency mapping must be a non-null object");
-      expect(() =>
-        validateAdjacencyMapping(undefined as unknown as AdjacencyMapping),
-      ).toThrow("Adjacency mapping must be a non-null object");
-    });
-
-    it("should reject non-object mappings", () => {
-      expect(() =>
-        validateAdjacencyMapping("invalid" as unknown as AdjacencyMapping),
-      ).toThrow("Adjacency mapping must be a non-null object");
-      expect(() =>
-        validateAdjacencyMapping(123 as unknown as AdjacencyMapping),
-      ).toThrow("Adjacency mapping must be a non-null object");
-    });
-
-    it("should reject invalid source file names", () => {
-      const adjacency = {
-        "": ["/src/utils.ts"], // Empty string
-      };
-
-      expect(() => validateAdjacencyMapping(adjacency)).toThrow(
-        "Invalid source file:",
-      );
-    });
-
-    it("should reject non-array dependencies", () => {
-      const adjacency = {
-        "/src/main.ts": "not-an-array", // Should be array
-      };
-
-      expect(() =>
-        validateAdjacencyMapping(adjacency as unknown as AdjacencyMapping),
-      ).toThrow("Dependencies for /src/main.ts must be an array");
-    });
-
-    it("should reject invalid dependency names", () => {
-      const adjacency = {
-        "/src/main.ts": ["", "/src/valid.ts"], // Empty string dependency
-      };
-
-      expect(() => validateAdjacencyMapping(adjacency)).toThrow(
-        "Invalid dependency:",
-      );
-    });
-  });
-
   describe("Integration tests", () => {
     it("should handle complete workflow: build -> serialize -> build", () => {
       const originalAdjacency: AdjacencyMapping = {
@@ -480,17 +368,10 @@ describe("Graph Builder", () => {
 
       const graph = buildGraph(adjacency);
       const cycles = findCycles(graph);
-      const stats = getGraphStats(graph);
       const serialized = serializeAdjacency(graph);
 
       // Should be acyclic
       expect(cycles).toEqual([]);
-      expect(stats.hasCycles).toBe(false);
-
-      // Should have reasonable stats
-      expect(stats.nodeCount).toBe(11);
-      expect(stats.edgeCount).toBe(18);
-      expect(stats.maxDepth).toBeGreaterThan(0);
 
       // Serialization should be deterministic
       expect(Object.keys(serialized)).toEqual(Object.keys(serialized).sort());

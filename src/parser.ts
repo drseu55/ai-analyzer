@@ -1,6 +1,5 @@
 import {
   Project,
-  ImportDeclaration,
   CallExpression,
   Node,
   SyntaxKind,
@@ -322,64 +321,4 @@ function processReExports(
 function isTypeScriptFile(filePath: string): boolean {
   const ext = extname(filePath);
   return ext === ".ts" || ext === ".tsx";
-}
-
-/**
- * Extracts import specifiers from an import declaration.
- * Handles different import forms: default, named, namespace.
- *
- * @param importDecl - The import declaration node
- * @returns Array of import specifier information
- */
-export function extractImportSpecifiers(
-  importDecl: ImportDeclaration,
-): ImportSpecifierInfo[] {
-  const specifiers: ImportSpecifierInfo[] = [];
-
-  // Default import: import foo from 'module'
-  const defaultImport = importDecl.getDefaultImport();
-  if (defaultImport) {
-    specifiers.push({
-      name: defaultImport.getText(),
-      type: "default",
-      isTypeOnly: false, // Default imports are already filtered at declaration level
-    });
-  }
-
-  // Namespace import: import * as foo from 'module'
-  const namespaceImport = importDecl.getNamespaceImport();
-  if (namespaceImport) {
-    specifiers.push({
-      name: namespaceImport.getText(),
-      type: "namespace",
-      isTypeOnly: false,
-    });
-  }
-
-  // Named imports: import { foo, bar } from 'module'
-  const namedImports = importDecl.getNamedImports();
-  for (const namedImport of namedImports) {
-    specifiers.push({
-      name: namedImport.getName(),
-      alias: namedImport.getAliasNode()?.getText(),
-      type: "named",
-      isTypeOnly: namedImport.isTypeOnly(),
-    });
-  }
-
-  return specifiers;
-}
-
-/**
- * Information about an import specifier
- */
-export interface ImportSpecifierInfo {
-  /** The imported name */
-  name: string;
-  /** The alias if used (e.g., 'as alias') */
-  alias?: string;
-  /** Type of import */
-  type: "default" | "named" | "namespace";
-  /** Whether this is a type-only import */
-  isTypeOnly: boolean;
 }

@@ -2,12 +2,9 @@ import pkg from "@dagrejs/graphlib";
 import type { Graph } from "@dagrejs/graphlib";
 import {
   analyzeProgrammatically,
-  validateInsightPayload,
   formatFilePath,
-  analyzeGraphHealth,
   type AnalyzerOptions,
 } from "../src/analyzer.js";
-import type { InsightPayload } from "../src/types.js";
 
 const { Graph: GraphConstructor } = pkg;
 
@@ -50,9 +47,6 @@ describe("Programmatic Analyzer", () => {
       expect(result.circularDependencies).toEqual([]);
       expect(result.tightCoupling).toEqual([]);
       expect(result.recommendations).toEqual([]);
-
-      // Validate schema compliance
-      expect(() => validateInsightPayload(result)).not.toThrow();
     });
 
     it("should handle simple acyclic graph", () => {
@@ -68,8 +62,6 @@ describe("Programmatic Analyzer", () => {
       expect(result.circularDependencies).toEqual([]);
       expect(result.tightCoupling).toEqual([]); // No modules exceed default thresholds
       expect(result.recommendations).toEqual([]); // No issues to recommend fixes for
-
-      expect(() => validateInsightPayload(result)).not.toThrow();
     });
 
     it("should detect circular dependencies", () => {
@@ -90,8 +82,6 @@ describe("Programmatic Analyzer", () => {
       expect(
         result.recommendations.some((rec) => rec.includes("circular")),
       ).toBe(true);
-
-      expect(() => validateInsightPayload(result)).not.toThrow();
     });
 
     it("should detect multiple circular dependencies", () => {
@@ -118,8 +108,6 @@ describe("Programmatic Analyzer", () => {
           cycle.includes("x -> y -> z -> x"),
         ),
       ).toBe(true);
-
-      expect(() => validateInsightPayload(result)).not.toThrow();
     });
 
     it("should detect high fan-out with default threshold", () => {
@@ -145,8 +133,6 @@ describe("Programmatic Analyzer", () => {
       expect(
         result.recommendations.some((rec) => rec.includes("splitting hub")),
       ).toBe(true);
-
-      expect(() => validateInsightPayload(result)).not.toThrow();
     });
 
     it("should detect high fan-in with default threshold", () => {
@@ -177,8 +163,6 @@ describe("Programmatic Analyzer", () => {
       expect(
         result.recommendations.some((rec) => rec.includes("Monitor shared")),
       ).toBe(true);
-
-      expect(() => validateInsightPayload(result)).not.toThrow();
     });
 
     it("should respect custom thresholds", () => {
@@ -205,8 +189,6 @@ describe("Programmatic Analyzer", () => {
           coupling.includes("High fan-out: moderate depends on 3 modules"),
         ),
       ).toBe(true);
-
-      expect(() => validateInsightPayload(customResult)).not.toThrow();
     });
 
     it("should use basenames when useBasenames is true", () => {
@@ -223,8 +205,6 @@ describe("Programmatic Analyzer", () => {
       expect(result.circularDependencies[0]).not.toContain(
         "/long/path/to/src/",
       );
-
-      expect(() => validateInsightPayload(result)).not.toThrow();
     });
 
     it("should use full paths when useBasenames is false", () => {
@@ -237,8 +217,6 @@ describe("Programmatic Analyzer", () => {
 
       expect(result.circularDependencies[0]).toContain("/src/moduleA.ts");
       expect(result.circularDependencies[0]).toContain("/src/moduleB.ts");
-
-      expect(() => validateInsightPayload(result)).not.toThrow();
     });
 
     it("should generate recommendations for complex scenarios", () => {
@@ -293,8 +271,6 @@ describe("Programmatic Analyzer", () => {
           rec.includes("splitting god-object"),
         ),
       ).toBe(true);
-
-      expect(() => validateInsightPayload(result)).not.toThrow();
     });
 
     it("should limit recommendations to avoid overwhelming output", () => {
@@ -316,53 +292,6 @@ describe("Programmatic Analyzer", () => {
 
       // Should limit recommendations even though there are many issues
       expect(result.recommendations.length).toBeLessThan(20); // Reasonable limit
-
-      expect(() => validateInsightPayload(result)).not.toThrow();
-    });
-  });
-
-  describe("validateInsightPayload", () => {
-    it("should validate correct InsightPayload", () => {
-      const validPayload: InsightPayload = {
-        circularDependencies: ["cycle1", "cycle2"],
-        tightCoupling: ["coupling1"],
-        recommendations: ["recommendation1", "recommendation2"],
-      };
-
-      expect(() => validateInsightPayload(validPayload)).not.toThrow();
-    });
-
-    it("should reject non-object payload", () => {
-      expect(() =>
-        validateInsightPayload(null as unknown as InsightPayload),
-      ).toThrow("InsightPayload must be an object");
-      expect(() =>
-        validateInsightPayload("invalid" as unknown as InsightPayload),
-      ).toThrow("InsightPayload must be an object");
-    });
-
-    it("should reject invalid circularDependencies", () => {
-      const invalidPayload = {
-        circularDependencies: "not an array",
-        tightCoupling: [],
-        recommendations: [],
-      };
-
-      expect(() =>
-        validateInsightPayload(invalidPayload as unknown as InsightPayload),
-      ).toThrow("circularDependencies must be an array");
-    });
-
-    it("should reject non-string items", () => {
-      const invalidPayload = {
-        circularDependencies: [123, "valid"],
-        tightCoupling: [],
-        recommendations: [],
-      };
-
-      expect(() =>
-        validateInsightPayload(invalidPayload as unknown as InsightPayload),
-      ).toThrow("All insight items must be strings");
     });
   });
 
@@ -380,108 +309,6 @@ describe("Programmatic Analyzer", () => {
 
     it("should default to basename when useBasename is not specified", () => {
       expect(formatFilePath("/src/module.ts")).toBe("module");
-    });
-  });
-
-  describe("analyzeGraphHealth", () => {
-    it("should rate empty graph as healthy", () => {
-      const graph = new GraphConstructor({ directed: true });
-      const health = analyzeGraphHealth(graph);
-
-      expect(health.status).toBe("healthy");
-      expect(health.score).toBe(100);
-      expect(health.issues).toEqual([]);
-      expect(health.metrics.nodeCount).toBe(0);
-    });
-
-    it("should rate simple healthy graph", () => {
-      const graph = createTestGraph({
-        "/src/main.ts": ["/src/utils.ts"],
-        "/src/utils.ts": ["/src/helpers.ts"],
-        "/src/helpers.ts": [],
-      });
-
-      const health = analyzeGraphHealth(graph);
-
-      expect(health.status).toBe("healthy");
-      expect(health.score).toBeGreaterThanOrEqual(80);
-      expect(health.issues).toEqual([]);
-    });
-
-    it("should detect problematic graph with cycles", () => {
-      const graph = createTestGraph({
-        "/src/a.ts": ["/src/b.ts"],
-        "/src/b.ts": ["/src/c.ts"],
-        "/src/c.ts": ["/src/a.ts"], // Creates cycle
-      });
-
-      const health = analyzeGraphHealth(graph);
-
-      expect(health.status).toBe("concerning");
-      expect(health.score).toBeLessThan(100);
-      expect(health.issues.some((issue) => issue.includes("circular"))).toBe(
-        true,
-      );
-      expect(health.metrics.cycleCount).toBe(1);
-    });
-
-    it("should detect high fan-out issues", () => {
-      const dependencies = Array.from(
-        { length: 20 },
-        (_, i) => `/src/dep${i}.ts`,
-      );
-      const graph = createTestGraph({
-        "/src/god-module.ts": dependencies,
-        ...Object.fromEntries(dependencies.map((dep) => [dep, []])),
-      });
-
-      const health = analyzeGraphHealth(graph);
-
-      expect(health.status).toBe("concerning");
-      expect(health.score).toBeLessThan(80);
-      expect(
-        health.issues.some((issue) => issue.includes("Very high fan-out")),
-      ).toBe(true);
-      expect(health.metrics.maxFanOut).toBe(20);
-    });
-
-    it("should handle multiple issues and score appropriately", () => {
-      // Create a graph with multiple problems
-      const graph = createTestGraph({
-        // Cycles
-        "/src/cycle1.ts": ["/src/cycle2.ts"],
-        "/src/cycle2.ts": ["/src/cycle1.ts"],
-        // High fan-out
-        "/src/god.ts": Array.from({ length: 25 }, (_, i) => `/src/dep${i}.ts`),
-        ...Object.fromEntries(
-          Array.from({ length: 25 }, (_, i) => [`/src/dep${i}.ts`, []]),
-        ),
-      });
-
-      const health = analyzeGraphHealth(graph);
-
-      expect(health.status).toBe("problematic");
-      expect(health.score).toBeLessThan(60);
-      expect(health.issues.length).toBeGreaterThan(1);
-    });
-
-    it("should provide detailed metrics", () => {
-      const graph = createTestGraph({
-        "/src/hub.ts": ["/src/a.ts", "/src/b.ts", "/src/c.ts"],
-        "/src/a.ts": ["/src/shared.ts"],
-        "/src/b.ts": ["/src/shared.ts"],
-        "/src/c.ts": ["/src/shared.ts"],
-        "/src/shared.ts": [],
-      });
-
-      const health = analyzeGraphHealth(graph);
-
-      expect(health.metrics.nodeCount).toBe(5);
-      expect(health.metrics.edgeCount).toBe(6);
-      expect(health.metrics.avgFanOut).toBeCloseTo(1.2, 1);
-      expect(health.metrics.maxFanOut).toBe(3);
-      expect(health.metrics.maxFanIn).toBe(3);
-      expect(health.metrics.cycleCount).toBe(0);
     });
   });
 
@@ -531,7 +358,6 @@ describe("Programmatic Analyzer", () => {
       expect(result.circularDependencies).toEqual([]);
       expect(result.tightCoupling).toEqual([]);
       expect(result.recommendations).toEqual([]);
-      expect(() => validateInsightPayload(result)).not.toThrow();
     });
 
     it("should handle disconnected graph components", () => {
@@ -547,7 +373,6 @@ describe("Programmatic Analyzer", () => {
       const result = analyzeProgrammatically(graph);
 
       expect(result.circularDependencies).toEqual([]);
-      expect(() => validateInsightPayload(result)).not.toThrow();
     });
 
     it("should handle very large threshold values", () => {
@@ -563,7 +388,6 @@ describe("Programmatic Analyzer", () => {
       });
 
       expect(result.tightCoupling).toEqual([]);
-      expect(() => validateInsightPayload(result)).not.toThrow();
     });
   });
 });

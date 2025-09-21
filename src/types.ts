@@ -27,12 +27,6 @@ export interface AnalysisOutput {
   insights: InsightPayload;
 }
 
-/**
- * Parser results for individual files
- * Key: file path, Value: array of imported modules/files
- */
-export type ParsedFileImports = Record<string, string[]>;
-
 // Zod schemas for validation
 
 /**
@@ -57,16 +51,6 @@ export const AnalysisOutputSchema = z.object({
   insights: InsightPayloadSchema,
 });
 
-/**
- * Schema for parser results validation
- */
-export const ParsedFileImportsSchema = z.record(
-  z.string(),
-  z.array(z.string()),
-);
-
 // Type inference from Zod schemas for runtime validation
-export type DependencyGraphType = z.infer<typeof DependencyGraphSchema>;
 export type InsightPayloadType = z.infer<typeof InsightPayloadSchema>;
 export type AnalysisOutputType = z.infer<typeof AnalysisOutputSchema>;
-export type ParsedFileImportsType = z.infer<typeof ParsedFileImportsSchema>;

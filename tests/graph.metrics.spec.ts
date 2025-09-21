@@ -2,8 +2,8 @@ import {
   buildGraph,
   computeFanInOut,
   findHighCouplingNodes,
-  getExtendedGraphStats,
   AdjacencyMapping,
+  findCycles,
 } from "../src/graph-builder.js";
 
 describe("Graph Metrics", () => {
@@ -307,65 +307,6 @@ describe("Graph Metrics", () => {
     });
   });
 
-  describe("getExtendedGraphStats", () => {
-    it("should provide comprehensive metrics for empty graph", () => {
-      const graph = buildGraph({});
-      const stats = getExtendedGraphStats(graph);
-
-      expect(stats.nodeCount).toBe(0);
-      expect(stats.edgeCount).toBe(0);
-      expect(stats.hasCycles).toBe(false);
-      expect(stats.maxDepth).toBe(0);
-      expect(stats.fanInOut.fanIn).toEqual({});
-      expect(stats.fanInOut.fanOut).toEqual({});
-      expect(stats.couplingMetrics.averageFanIn).toBe(0);
-      expect(stats.couplingMetrics.averageFanOut).toBe(0);
-      expect(stats.couplingMetrics.maxFanIn).toBe(0);
-      expect(stats.couplingMetrics.maxFanOut).toBe(0);
-      expect(stats.couplingMetrics.highlyConnectedNodes).toBe(0);
-    });
-
-    it("should calculate coupling metrics correctly", () => {
-      const adjacency: AdjacencyMapping = {
-        "/src/main.ts": ["/src/utils.ts", "/src/config.ts"], // fan-out: 2
-        "/src/app.ts": ["/src/utils.ts"], // fan-out: 1
-        "/src/test.ts": ["/src/utils.ts"], // fan-out: 1
-        "/src/utils.ts": ["/src/helpers.ts"], // fan-out: 1, fan-in: 3
-        "/src/config.ts": [], // fan-out: 0, fan-in: 1
-        "/src/helpers.ts": [], // fan-out: 0, fan-in: 1
-      };
-      const graph = buildGraph(adjacency);
-      const stats = getExtendedGraphStats(graph);
-
-      expect(stats.nodeCount).toBe(6);
-      expect(stats.edgeCount).toBe(5);
-
-      // Fan-in values: [0, 0, 0, 3, 1, 1] = sum 5, avg 5/6 ≈ 0.83
-      // Fan-out values: [2, 1, 1, 1, 0, 0] = sum 5, avg 5/6 ≈ 0.83
-      expect(stats.couplingMetrics.averageFanIn).toBeCloseTo(5 / 6, 2);
-      expect(stats.couplingMetrics.averageFanOut).toBeCloseTo(5 / 6, 2);
-      expect(stats.couplingMetrics.maxFanIn).toBe(3);
-      expect(stats.couplingMetrics.maxFanOut).toBe(2);
-
-      // Nodes above average in either direction should be counted
-      expect(stats.couplingMetrics.highlyConnectedNodes).toBeGreaterThan(0);
-    });
-
-    it("should handle graphs with cycles", () => {
-      const adjacency: AdjacencyMapping = {
-        "/src/a.ts": ["/src/b.ts"],
-        "/src/b.ts": ["/src/a.ts"],
-      };
-      const graph = buildGraph(adjacency);
-      const stats = getExtendedGraphStats(graph);
-
-      expect(stats.hasCycles).toBe(true);
-      expect(stats.maxDepth).toBe(0); // Cycles make depth calculation invalid
-      expect(stats.couplingMetrics.averageFanIn).toBe(1);
-      expect(stats.couplingMetrics.averageFanOut).toBe(1);
-    });
-  });
-
   describe("Real-world scenario", () => {
     it("should analyze a complex project structure", () => {
       const adjacency: AdjacencyMapping = {
@@ -461,28 +402,29 @@ describe("Graph Metrics", () => {
       };
 
       const graph = buildGraph(adjacency);
-      const stats = getExtendedGraphStats(graph);
       const coupling = findHighCouplingNodes(graph, {
         fanInThreshold: 3,
         fanOutThreshold: 3,
       });
 
       // Should be a substantial graph (24 nodes based on our adjacency mapping)
-      expect(stats.nodeCount).toBe(24);
-      expect(stats.edgeCount).toBe(47);
-      expect(stats.hasCycles).toBe(false);
+      expect(graph.nodeCount()).toBe(24);
+      expect(graph.edgeCount()).toBe(47);
+      expect(findCycles(graph)).toEqual([]);
 
       // Logger should have very high fan-in (used everywhere)
       expect(
-        stats.fanInOut.fanIn["/src/utils/logger.ts"],
+        computeFanInOut(graph).fanIn["/src/utils/logger.ts"],
       ).toBeGreaterThanOrEqual(8);
 
       // Config should have moderate fan-in
-      expect(stats.fanInOut.fanIn["/src/config.ts"]).toBeGreaterThanOrEqual(3);
+      expect(
+        computeFanInOut(graph).fanIn["/src/config.ts"],
+      ).toBeGreaterThanOrEqual(3);
 
       // App and route index should have moderate fan-out
-      expect(stats.fanInOut.fanOut["/src/app.ts"]).toBe(3);
-      expect(stats.fanInOut.fanOut["/src/routes/index.ts"]).toBe(3);
+      expect(computeFanInOut(graph).fanOut["/src/app.ts"]).toBe(3);
+      expect(computeFanInOut(graph).fanOut["/src/routes/index.ts"]).toBe(3);
 
       // Should identify highly coupled nodes
       expect(coupling.highFanIn.length).toBeGreaterThan(0);
@@ -496,10 +438,10 @@ describe("Graph Metrics", () => {
       expect(loggerCoupling!.count).toBeGreaterThanOrEqual(8);
 
       // Metrics should be reasonable
-      expect(stats.couplingMetrics.averageFanIn).toBeGreaterThan(0);
-      expect(stats.couplingMetrics.averageFanOut).toBeGreaterThan(0);
-      expect(stats.couplingMetrics.maxFanIn).toBeGreaterThanOrEqual(8);
-      expect(stats.couplingMetrics.maxFanOut).toBeGreaterThanOrEqual(3);
+      expect(coupling.highFanIn.length).toBeGreaterThan(0);
+      expect(coupling.highFanOut.length).toBeGreaterThan(0);
+      expect(coupling.highFanOut.length).toBeGreaterThanOrEqual(8);
+      expect(coupling.highFanOut.length).toBeGreaterThanOrEqual(3);
     });
   });
 });

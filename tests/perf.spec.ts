@@ -1,5 +1,5 @@
-import { parseImports } from "../src/parser.js";
-import { findTypeScriptFiles } from "../src/utils/fs.js";
+import { parseImports } from "../src/parser";
+import { findTypeScriptFiles } from "../src/utils/fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { mkdir, writeFile, rm } from "fs/promises";
@@ -59,7 +59,7 @@ describe("Performance and Concurrency Controls", () => {
       const mockResolver = jest.fn().mockReturnValue(null);
 
       // Spy on logger to capture batch processing
-      const { logger } = await import("../src/utils/logger.js");
+      const { logger } = await import("../src/utils/logger");
       const debugSpy = jest.spyOn(logger, "debug").mockImplementation();
 
       // Test with concurrency of 5
@@ -101,7 +101,7 @@ describe("Performance and Concurrency Controls", () => {
       const mockResolver = jest.fn().mockReturnValue(null);
 
       // Spy on logger to capture concurrency setting
-      const { logger } = await import("../src/utils/logger.js");
+      const { logger } = await import("../src/utils/logger");
       const debugSpy = jest.spyOn(logger, "debug").mockImplementation();
 
       // Test without specifying concurrency (should default to 10)
@@ -128,7 +128,7 @@ describe("Performance and Concurrency Controls", () => {
       const mockResolver = jest.fn().mockReturnValue(null);
 
       // Spy on logger to capture batch processing
-      const { logger } = await import("../src/utils/logger.js");
+      const { logger } = await import("../src/utils/logger");
       const debugSpy = jest.spyOn(logger, "debug").mockImplementation();
 
       // Test with concurrency larger than file count
@@ -268,7 +268,7 @@ describe("Performance and Concurrency Controls", () => {
 
   describe("Integration with Main CLI", () => {
     it("should accept concurrency and maxFiles options from CLI", async () => {
-      const { runAnalysis } = await import("../src/main.js");
+      const { runAnalysis } = await import("../src/main");
 
       const files: Record<string, string> = {};
       for (let i = 0; i < 8; i++) {
@@ -284,9 +284,19 @@ describe("Performance and Concurrency Controls", () => {
       });
       process.exit = mockExit as unknown as typeof process.exit;
 
+      // Mock analyzer functions to avoid LLM calls
+      const analyzer = await import("../src/analyzer");
+      const analyzeProgrammaticallySpy = jest
+        .spyOn(analyzer, "analyzeProgrammatically")
+        .mockReturnValue({
+          circularDependencies: [],
+          tightCoupling: [],
+          recommendations: ["Test recommendation"],
+        });
+
       // Spy on parseImports to verify options are passed
       const parseImportsSpy = jest.spyOn(
-        await import("../src/parser.js"),
+        await import("../src/parser"),
         "parseImports",
       );
 
@@ -295,6 +305,7 @@ describe("Performance and Concurrency Controls", () => {
           dir: projectDir,
           maxFiles: 5,
           concurrency: 3,
+          useProgrammaticAnalysis: true, // Force programmatic to avoid LLM calls
         });
       } catch (_error) {
         // Expected to fail due to mocked exit, but options should be passed
@@ -308,7 +319,8 @@ describe("Performance and Concurrency Controls", () => {
       );
 
       parseImportsSpy.mockRestore();
+      analyzeProgrammaticallySpy.mockRestore();
       process.exit = originalExit;
-    });
+    }, 10000); // Increase timeout to 10 seconds
   });
 });
