@@ -295,3 +295,23 @@ npm start -- --dir ./my-project/src --output ./analysis.json
 # Limit analysis to 50 files with 5 concurrent processes
 npm start -- --dir ./my-project/src --max-files 50 --concurrency 5
 ```
+
+## Architecture Documentation
+
+This project maintains comprehensive Architecture Decision Records (ADRs) that document the key design decisions, trade-offs, and architectural patterns used throughout the codebase.
+
+### What are ADRs?
+
+Architecture Decision Records (ADRs) are documents that capture important architectural decisions made during the development process. They provide context about why certain technologies, patterns, or approaches were chosen, helping current and future developers understand the reasoning behind the implementation.
+
+### Available ADRs
+
+The ADR collection includes detailed documentation for:
+
+- **[TypeScript Path Resolution Architecture](docs/adr/20250919-typescript-path-resolution-architecture.md)** - How the TypeScript path mappings and import resolution are handled
+- **[TypeScript AST Parsing Architecture](docs/adr/20250921-typescript-ast-parsing-architecture.md)** - Design decisions for import extraction using AST parsing
+- **[Dependency Graph Construction Architecture](docs/adr/20250921-dependency-graph-construction-architecture.md)** - Graph algorithms and analysis strategies
+
+### Browsing ADRs
+
+You can explore the complete architecture knowledge base in the [`docs/adr/`](docs/adr/) directory. There is a [README](docs/adr/README.md) file which describes the `log4brains` commands for proper viewing of the ADR documentation.
