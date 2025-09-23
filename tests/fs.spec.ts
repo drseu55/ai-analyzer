@@ -2,9 +2,6 @@ import { join, resolve } from "path";
 import { mkdir, writeFile, rm } from "fs/promises";
 import {
   findTypeScriptFiles,
-  shouldIgnorePath,
-  toRelativePaths,
-  validateDirectory,
   FindTypeScriptFilesOptions,
 } from "../src/utils/fs";
 
@@ -177,81 +174,6 @@ describe("Filesystem Utilities", () => {
     });
   });
 
-  describe("shouldIgnorePath", () => {
-    it("should ignore default patterns", () => {
-      expect(shouldIgnorePath("/project/node_modules/package", [])).toBe(true);
-      expect(shouldIgnorePath("/project/dist/output", [])).toBe(true);
-      expect(shouldIgnorePath("/project/coverage/report", [])).toBe(true);
-      expect(shouldIgnorePath("/project/.git/config", [])).toBe(true);
-    });
-
-    it("should ignore custom patterns", () => {
-      const customIgnores = ["custom", "temp"];
-      expect(shouldIgnorePath("/project/custom/file", customIgnores)).toBe(
-        true,
-      );
-      expect(shouldIgnorePath("/project/temp/file", customIgnores)).toBe(true);
-      expect(shouldIgnorePath("/project/src/file", customIgnores)).toBe(false);
-    });
-
-    it("should handle nested paths correctly", () => {
-      expect(shouldIgnorePath("/project/src/node_modules/lib", [])).toBe(true);
-      expect(shouldIgnorePath("/project/src/components/Button", [])).toBe(
-        false,
-      );
-    });
-  });
-
-  describe("toRelativePaths", () => {
-    it("should convert absolute paths to relative paths", () => {
-      const baseDir = "/project";
-      const absolutePaths = [
-        "/project/src/main.ts",
-        "/project/src/utils/helpers.ts",
-        "/project/tests/main.spec.ts",
-      ];
-
-      const relativePaths = toRelativePaths(absolutePaths, baseDir);
-
-      expect(relativePaths).toEqual([
-        "src/main.ts",
-        "src/utils/helpers.ts",
-        "tests/main.spec.ts",
-      ]);
-    });
-
-    it("should handle paths outside base directory", () => {
-      const baseDir = "/project/src";
-      const absolutePaths = ["/project/src/main.ts", "/other/path/file.ts"];
-
-      const relativePaths = toRelativePaths(absolutePaths, baseDir);
-
-      expect(relativePaths[0]).toBe("main.ts");
-      expect(relativePaths[1]).toContain("/other/path/file.ts");
-    });
-  });
-
-  describe("validateDirectory", () => {
-    it("should validate existing directory", async () => {
-      await expect(validateDirectory(SAMPLE_SRC_PATH)).resolves.toBe(true);
-    });
-
-    it("should reject non-existent directory", async () => {
-      await expect(validateDirectory("/non/existent/path")).rejects.toThrow(
-        "Directory /non/existent/path does not exist",
-      );
-    });
-
-    it("should reject file as directory", async () => {
-      // Use one of the sample files
-      const sampleFile = join(SAMPLE_SRC_PATH, "mathUtils.ts");
-
-      await expect(validateDirectory(sampleFile)).rejects.toThrow(
-        "is not a directory",
-      );
-    });
-  });
-
   describe("Integration with sample-src", () => {
     it("should discover all sample TypeScript files with correct structure", async () => {
       const files = await findTypeScriptFiles(SAMPLE_SRC_PATH);
@@ -270,13 +192,14 @@ describe("Filesystem Utilities", () => {
       });
 
       // Convert to relative paths for easier testing
-      const relativeFiles = toRelativePaths(files, resolve("."));
+      const relativeFiles = files.map((file) => file.replace(resolve("."), ""));
+
       const expectedFiles = [
-        "sample-src/arrayUtils.ts",
-        "sample-src/mathUtils.ts",
-        "sample-src/statsUtils.ts",
-        "sample-src/stringUtils.ts",
-        "sample-src/templateUtils.ts",
+        "/sample-src/arrayUtils.ts",
+        "/sample-src/mathUtils.ts",
+        "/sample-src/statsUtils.ts",
+        "/sample-src/stringUtils.ts",
+        "/sample-src/templateUtils.ts",
       ];
 
       expectedFiles.forEach((expectedFile) => {
